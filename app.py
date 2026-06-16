@@ -3,6 +3,7 @@ import requests
 
 app = Flask(__name__)
 
+# ================== CONFIGURATIE ==================
 ACCESS_TOKEN = "581985d14120b829df624ebcc1d2d63c"
 ORGANIZATION_ID = "pXPgma"
 GROUP_ID = "35"
@@ -16,28 +17,29 @@ headers = {
 @app.route('/api/quota')
 def get_quota():
     try:
-        # Meest waarschijnlijke endpoints
-        urls = [
-            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info/csv",
+        # Meerdere mogelijke endpoints proberen
+        endpoints = [
             f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info_csv",
+            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info/csv",
             f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal/users"
         ]
         
-        for url in urls:
-            response = requests.get(url, headers=headers, timeout=10)
-            if response.status_code == 200:
+        response = None
+        for url in endpoints:
+            resp = requests.get(url, headers=headers, timeout=15)
+            if resp.status_code == 200:
+                response = resp
                 break
-            print(f"Probeerde {url} → {response.status_code}")
+            else:
+                print(f"Endpoint {url} gaf: {resp.status_code}")
         
-        if response.status_code != 200:
-            return jsonify({
-                "error": f"Peplink API fout: {response.status_code}",
-                "details": response.text
-            }), 500
+        if not response or response.status_code != 200:
+            error_msg = response.text if response else "Geen response"
+            return jsonify({"error": f"Peplink API fout: {response.status_code if response else 'No response'}", "details": error_msg}), 500
 
-        # ... (rest van de code blijft hetzelfde)
         users = []
         lines = response.text.strip().split("\n")
+        
         for line in lines[1:]:
             if line.strip():
                 fields = [f.strip() for f in line.split(",")]
@@ -45,6 +47,7 @@ def get_quota():
                     username = fields[0]
                     quota = fields[1] if len(fields) > 1 else "N/A"
                     used = fields[2] if len(fields) > 2 else "0 GB"
+                    
                     users.append({
                         "name": username,
                         "quota": quota,
