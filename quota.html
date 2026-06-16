@@ -16,7 +16,7 @@
         .button { padding: 12px 24px; background: #1e3a8a; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         .button:hover { background: #2e4a9e; }
         .error { color: red; text-align: center; font-weight: bold; }
-        .last-update { text-align: center; color: #666; margin-top: 20px; }
+        .debug { background: #f8f9fa; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.9em; white-space: pre-wrap; }
     </style>
 </head>
 <body>
@@ -43,29 +43,40 @@
     </table>
 
     <p class="last-update">Laatste update: <span id="lastUpdate">—</span></p>
+
+    <div id="debug" class="debug" style="display:none;"></div>
 </div>
 
 <script>
 async function loadQuota() {
     const tbody = document.querySelector("#quotaTable tbody");
+    const debugDiv = document.getElementById("debug");
     tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:40px;'>⏳ Data ophalen van Peplink...</td></tr>";
 
     try {
         const response = await fetch('/api/quota');
-        let data = await response.json();
+        const data = await response.json();
 
-        // Debug: toon wat er precies binnenkomt
-        console.log("Ontvangen data:", data);
+        debugDiv.style.display = "block";
+        debugDiv.textContent = "Debug:\n" + JSON.stringify(data, null, 2).substring(0, 800);
 
-        // Als het een object met 'users' is
-        if (data.users && Array.isArray(data.users)) {
-            data = data.users;
+        // Meerdere mogelijke structuren afhandelen
+        let users = [];
+
+        if (Array.isArray(data)) {
+            users = data;
+        } else if (data.users && Array.isArray(data.users)) {
+            users = data.users;
+        } else if (data && typeof data === 'object') {
+            users = [data];  // als het één object is
         }
 
-        // Als het een array is
-        if (Array.isArray(data) && data.length > 0) {
-            tbody.innerHTML = "";
-            data.forEach(user => {
+        tbody.innerHTML = "";
+
+        if (users.length === 0) {
+            tbody.innerHTML = `<tr><td colspan='5' class='error'>Geen gebruikers gevonden in de response.</td></tr>`;
+        } else {
+            users.forEach(user => {
                 const row = document.createElement("tr");
                 row.innerHTML = `
                     <td><strong>${user.name || user.username || 'Onbekend'}</strong></td>
@@ -76,8 +87,6 @@ async function loadQuota() {
                 `;
                 tbody.appendChild(row);
             });
-        } else {
-            tbody.innerHTML = `<tr><td colspan='5' class='error'>Geen gebruikers gevonden in de response.</td></tr>`;
         }
 
         document.getElementById("lastUpdate").textContent = new Date().toLocaleTimeString('nl-NL');
@@ -87,7 +96,6 @@ async function loadQuota() {
     }
 }
 
-// Laad automatisch
 window.onload = loadQuota;
 </script>
 
