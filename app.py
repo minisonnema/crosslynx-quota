@@ -17,55 +17,36 @@ headers = {
 @app.route('/api/quota')
 def get_quota():
     try:
-        # Officiële endpoints uit Peplink API docs
-        endpoints = [
-            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info",
-            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info/csv"
-        ]
+        url = f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info_csv"
         
-        response = None
-        used_url = ""
+        response = requests.get(url, headers=headers, timeout=15)
         
-        for url in endpoints:
-            resp = requests.get(url, headers=headers, timeout=15)
-            used_url = url
-            if resp.status_code == 200:
-                response = resp
-                break
+        # Debug informatie
+        debug = {
+            "status_code": response.status_code,
+            "raw_response": response.text[:1000] if response.text else "Lege response",
+            "headers": dict(response.headers)
+        }
         
-        if not response or response.status_code != 200:
-            return jsonify({
-                "error": f"API fout: {response.status_code if response else 'No response'}",
-                "details": f"Probeerde: {used_url}\n{response.text if response else 'Geen response'}"
-            }), 500
+        if response.status_code != 200:
+            return jsonify({"error": f"API fout: {response.status_code}", "debug": debug}), 500
 
-        # Verwerk data
+        # Probeer data te parsen
         users = []
-        raw = response.text.strip()
+        lines = response.text.strip().split("\n")
         
-        if raw.startswith('['):  # JSON
-            data = response.json()
-            for item in data if isinstance(data, list) else []:
-                users.append({
-                    "name": item.get("username") or item.get("name", "Onbekend"),
-                    "quota": item.get("quota", "N/A"),
-                    "used": item.get("used", "0 GB"),
-                    "remaining": item.get("remaining", "N/A")
-                })
-        else:  # CSV
-            lines = raw.split("\n")
-            for line in lines[1:]:
-                if line.strip():
-                    fields = [f.strip() for f in line.split(",")]
-                    if len(fields) >= 1:
-                        users.append({
-                            "name": fields[0],
-                            "quota": fields[1] if len(fields) > 1 else "N/A",
-                            "used": fields[2] if len(fields) > 2 else "0 GB",
-                            "remaining": fields[1] if len(fields) > 1 else "N/A"
-                        })
+        for line in lines[1:]:
+            if line.strip():
+                fields = [f.strip() for f in line.split(",")]
+                if len(fields) >= 1:
+                    users.append({
+                        "name": fields[0],
+                        "quota": fields[1] if len(fields) > 1 else "N/A",
+                        "used": fields[2] if len(fields) > 2 else "0 GB",
+                        "remaining": fields[1] if len(fields) > 1 else "N/A"
+                    })
 
-        return jsonify(users)
+        return jsonify({"users": users, "debug": debug})
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
