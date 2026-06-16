@@ -17,30 +17,21 @@ headers = {
 @app.route('/api/quota')
 def get_quota():
     try:
-        # Meerdere mogelijke endpoints proberen
-        endpoints = [
-            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info_csv",
-            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info/csv",
-            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal/users"
-        ]
+        # Exacte endpoint volgens Peplink API documentatie
+        url = f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info_csv"
         
-        response = None
-        for url in endpoints:
-            resp = requests.get(url, headers=headers, timeout=15)
-            if resp.status_code == 200:
-                response = resp
-                break
-            else:
-                print(f"Endpoint {url} gaf: {resp.status_code}")
+        response = requests.get(url, headers=headers, timeout=15)
         
-        if not response or response.status_code != 200:
-            error_msg = response.text if response else "Geen response"
-            return jsonify({"error": f"Peplink API fout: {response.status_code if response else 'No response'}", "details": error_msg}), 500
+        if response.status_code != 200:
+            return jsonify({
+                "error": f"Peplink API fout: {response.status_code}",
+                "details": response.text[:500]  # eerste 500 tekens
+            }), 500
 
         users = []
         lines = response.text.strip().split("\n")
         
-        for line in lines[1:]:
+        for line in lines[1:]:  # skip header
             if line.strip():
                 fields = [f.strip() for f in line.split(",")]
                 if len(fields) >= 2:
