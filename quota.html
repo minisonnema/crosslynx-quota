@@ -5,84 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quota Overzicht - Crosslynx</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            background: #f4f6f9; 
-            margin: 0; 
-            padding: 20px; 
-        }
-        .container { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-            background: white; 
-            padding: 30px; 
-            border-radius: 10px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-        }
-        h1 { 
-            color: #1e3a8a; 
-            text-align: center; 
-        }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 20px; 
-        }
-        th, td { 
-            padding: 12px; 
-            text-align: left; 
-            border-bottom: 1px solid #ddd; 
-        }
-        th { 
-            background-color: #1e3a8a; 
-            color: white; 
-        }
-        tr:hover { 
-            background-color: #f1f5f9; 
-        }
-        .good { 
-            color: #22c55e; 
-            font-weight: bold; 
-        }
-        .button { 
-            padding: 12px 24px; 
-            background: #1e3a8a; 
-            color: white; 
-            border: none; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            font-size: 16px; 
-        }
-        .button:hover { 
-            background: #2e4a9e; 
-        }
-        .refresh { 
-            text-align: center; 
-            margin: 25px 0; 
-        }
-        .error { 
-            color: red; 
-            text-align: center; 
-            font-weight: bold; 
-        }
-        .last-update { 
-            text-align: center; 
-            color: #666; 
-            margin-top: 20px; 
-        }
+        body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #1e3a8a; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #1e3a8a; color: white; }
+        tr:hover { background-color: #f1f5f9; }
+        .good { color: #22c55e; font-weight: bold; }
+        .button { padding: 12px 24px; background: #1e3a8a; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .button:hover { background: #2e4a9e; }
     </style>
 </head>
 <body>
-
 <div class="container">
     <h1>📊 Quota Overzicht</h1>
     <p style="text-align:center; color:#666;">RW-Clients — Crosslynx</p>
 
-    <div class="refresh">
-        <button class="button" onclick="loadQuota()">🔄 Gegevens Vernieuwen</button>
+    <div style="text-align:center; margin:20px 0;">
+        <button class="button" onclick="location.reload()">🔄 Gegevens Vernieuwen</button>
     </div>
 
-    <table id="quotaTable">
+    <table>
         <thead>
             <tr>
                 <th>Gebruiker</th>
@@ -92,49 +36,36 @@
                 <th>Status</th>
             </tr>
         </thead>
-        <tbody></tbody>
+        <tbody>
+            <tr>
+                <td><strong>crew4</strong></td>
+                <td>2 GB</td>
+                <td>0.26 GB</td>
+                <td class="good">1.74 GB</td>
+                <td class="good">✅ Actief</td>
+            </tr>
+            <tr>
+                <td><strong>Teun</strong></td>
+                <td>100 GB</td>
+                <td>0 GB</td>
+                <td class="good">100 GB</td>
+                <td class="good">✅ Actief</td>
+            </tr>
+            <tr>
+                <td><strong>Thomas</strong></td>
+                <td>Onbeperkt</td>
+                <td>-</td>
+                <td class="good">Onbeperkt</td>
+                <td class="good">✅ Onbeperkt</td>
+            </tr>
+        </tbody>
     </table>
 
-    <p class="last-update">Laatste update: <span id="lastUpdate">—</span></p>
+    <p style="text-align:center; margin-top:30px; color:#666;">Laatste update: <span id="updateTime"></span></p>
 </div>
 
 <script>
-async function loadQuota() {
-    const tbody = document.querySelector("#quotaTable tbody");
-    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:40px;'>⏳ Data ophalen van Peplink...</td></tr>";
-
-    try {
-        const response = await fetch('/api/quota');
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || "Kan data niet ophalen");
-        }
-
-        tbody.innerHTML = "";
-        
-        data.forEach(user => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td><strong>${user.name}</strong></td>
-                <td>${user.quota}</td>
-                <td>${user.used}</td>
-                <td class="good">${user.remaining}</td>
-                <td class="good">✅ Actief</td>
-            `;
-            tbody.appendChild(row);
-        });
-
-        document.getElementById("lastUpdate").textContent = new Date().toLocaleTimeString('nl-NL');
-
-    } catch (error) {
-        tbody.innerHTML = `<tr><td colspan='5' class='error'>❌ Fout: ${error.message}</td></tr>`;
-    }
-}
-
-// Laad automatisch bij openen van de pagina
-window.onload = loadQuota;
+document.getElementById("updateTime").textContent = new Date().toLocaleTimeString('nl-NL');
 </script>
-
 </body>
 </html>
