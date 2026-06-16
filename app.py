@@ -4,7 +4,7 @@ import requests
 app = Flask(__name__)
 
 # ================== CONFIGURATIE ==================
-ACCESS_TOKEN = "581985d14120b829df624ebcc1d2d63c"
+ACCESS_TOKEN = "ddbcceb39f4555d4cda517560c117f93"
 ORGANIZATION_ID = "pXPgma"
 GROUP_ID = "35"
 
@@ -19,7 +19,7 @@ def get_quota():
     try:
         url = f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info_csv"
         
-        response = requests.get(url, headers=headers, timeout=20)
+        response = requests.get(url, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return jsonify({
