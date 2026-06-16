@@ -17,39 +17,46 @@ headers = {
 @app.route('/api/quota')
 def get_quota():
     try:
-        url = f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info_csv"
+        # Probeer verschillende mogelijke endpoints
+        endpoints = [
+            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info",
+            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info_csv",
+            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info/csv"
+        ]
         
-        response = requests.get(url, headers=headers, timeout=15)
+        response = None
+        used_url = ""
         
-        if response.status_code != 200:
-            return jsonify({"error": f"API fout: {response.status_code}", "details": response.text}), 500
+        for url in endpoints:
+            resp = requests.get(url, headers=headers, timeout=15)
+            used_url = url
+            if resp.status_code == 200:
+                response = resp
+                break
+        
+        if not response or response.status_code != 200:
+            return jsonify({
+                "error": f"API fout: {response.status_code if response else 'No response'}",
+                "details": f"Probeerde: {used_url}\n{response.text if response else 'Geen response'}"
+            }), 500
 
-        raw_data = response.text.strip()
-        
-        # Debug: stuur ook de eerste regels mee
-        debug_info = raw_data[:1000] if raw_data else "Lege response"
-
+        # Data verwerken
+        raw = response.text.strip()
         users = []
-        lines = raw_data.split("\n")
+        lines = raw.split("\n")
         
-        for line in lines[1:]:   # skip header
+        for line in lines[1:]:
             if line.strip():
                 fields = [f.strip() for f in line.split(",")]
                 if len(fields) >= 1:
-                    username = fields[0]
-                    quota = fields[1] if len(fields) > 1 else "N/A"
-                    used = fields[2] if len(fields) > 2 else "0 GB"
                     users.append({
-                        "name": username,
-                        "quota": quota,
-                        "used": used,
-                        "remaining": quota
+                        "name": fields[0],
+                        "quota": fields[1] if len(fields) > 1 else "N/A",
+                        "used": fields[2] if len(fields) > 2 else "0 GB",
+                        "remaining": fields[1] if len(fields) > 1 else "N/A"
                     })
 
-        return jsonify({
-            "users": users,
-            "debug": debug_info[:500]   # eerste 500 tekens voor debug
-        })
+        return jsonify(users)
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500
