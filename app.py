@@ -3,7 +3,6 @@ import requests
 
 app = Flask(__name__)
 
-# ================== CONFIGURATIE ==================
 ACCESS_TOKEN = "30bdfcb975362cf23aee7d11568278c9"
 ORGANIZATION_ID = "pXPgma"
 GROUP_ID = "35"
@@ -17,25 +16,35 @@ headers = {
 @app.route('/api/quota')
 def get_quota():
     try:
-        # Probeer de juiste endpoint
-        url = f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info/csv"
+        # Meest waarschijnlijke endpoints
+        urls = [
+            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info/csv",
+            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info_csv",
+            f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal/users"
+        ]
         
-        response = requests.get(url, headers=headers, timeout=15)
+        for url in urls:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                break
+            print(f"Probeerde {url} → {response.status_code}")
         
         if response.status_code != 200:
-            return jsonify({"error": f"Peplink API fout: {response.status_code} - {response.text}"}), 500
+            return jsonify({
+                "error": f"Peplink API fout: {response.status_code}",
+                "details": response.text
+            }), 500
 
+        # ... (rest van de code blijft hetzelfde)
         users = []
         lines = response.text.strip().split("\n")
-        
-        for line in lines[1:]:   # skip header
+        for line in lines[1:]:
             if line.strip():
                 fields = [f.strip() for f in line.split(",")]
                 if len(fields) >= 2:
                     username = fields[0]
                     quota = fields[1] if len(fields) > 1 else "N/A"
                     used = fields[2] if len(fields) > 2 else "0 GB"
-                    
                     users.append({
                         "name": username,
                         "quota": quota,
