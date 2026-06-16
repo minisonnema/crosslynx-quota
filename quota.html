@@ -15,18 +15,21 @@
         .good { color: #22c55e; font-weight: bold; }
         .button { padding: 12px 24px; background: #1e3a8a; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         .button:hover { background: #2e4a9e; }
+        .error { color: red; text-align: center; font-weight: bold; }
+        .last-update { text-align: center; color: #666; margin-top: 20px; }
     </style>
 </head>
 <body>
+
 <div class="container">
     <h1>📊 Quota Overzicht</h1>
     <p style="text-align:center; color:#666;">RW-Clients — Crosslynx</p>
 
     <div style="text-align:center; margin:25px 0;">
-        <button class="button" onclick="location.reload()">🔄 Gegevens Vernieuwen</button>
+        <button class="button" onclick="loadQuota()">🔄 Gegevens Vernieuwen</button>
     </div>
 
-    <table>
+    <table id="quotaTable">
         <thead>
             <tr>
                 <th>Gebruiker</th>
@@ -36,36 +39,49 @@
                 <th>Status</th>
             </tr>
         </thead>
-        <tbody>
-            <tr>
-                <td><strong>crew4</strong></td>
-                <td>2 GB</td>
-                <td>0.26 GB</td>
-                <td class="good">1.74 GB</td>
-                <td class="good">✅ Actief</td>
-            </tr>
-            <tr>
-                <td><strong>Teun</strong></td>
-                <td>100 GB</td>
-                <td>0 GB</td>
-                <td class="good">100 GB</td>
-                <td class="good">✅ Actief</td>
-            </tr>
-            <tr>
-                <td><strong>Thomas</strong></td>
-                <td>Onbeperkt</td>
-                <td>-</td>
-                <td class="good">Onbeperkt</td>
-                <td class="good">✅ Onbeperkt</td>
-            </tr>
-        </tbody>
+        <tbody></tbody>
     </table>
 
-    <p style="text-align:center; margin-top:30px; color:#666;">Laatste update: <span id="updateTime"></span></p>
+    <p class="last-update">Laatste update: <span id="lastUpdate">—</span></p>
 </div>
 
 <script>
-document.getElementById("updateTime").textContent = new Date().toLocaleTimeString('nl-NL');
+async function loadQuota() {
+    const tbody = document.querySelector("#quotaTable tbody");
+    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:40px;'>⏳ Data ophalen van Peplink...</td></tr>";
+
+    try {
+        const response = await fetch('/api/quota');
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+            throw new Error(data.error || data.details || "Onbekende fout");
+        }
+
+        tbody.innerHTML = "";
+        
+        data.forEach(user => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td><strong>${user.name}</strong></td>
+                <td>${user.quota}</td>
+                <td>${user.used}</td>
+                <td class="good">${user.remaining}</td>
+                <td class="good">✅ Actief</td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        document.getElementById("lastUpdate").textContent = new Date().toLocaleTimeString('nl-NL');
+
+    } catch (error) {
+        tbody.innerHTML = `<tr><td colspan='5' class='error'>❌ ${error.message}</td></tr>`;
+    }
+}
+
+// Laad automatisch bij openen
+window.onload = loadQuota;
 </script>
+
 </body>
 </html>
