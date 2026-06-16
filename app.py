@@ -4,7 +4,7 @@ import requests
 app = Flask(__name__)
 
 # ================== CONFIGURATIE ==================
-ACCESS_TOKEN = "58425"
+ACCESS_TOKEN = "30bdfcb975362cf23aee7d11568278c9"
 ORGANIZATION_ID = "pXPgma"
 GROUP_ID = "35"
 
@@ -17,16 +17,18 @@ headers = {
 @app.route('/api/quota')
 def get_quota():
     try:
-        url = f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info_csv"
+        # Probeer de juiste endpoint
+        url = f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info/csv"
+        
         response = requests.get(url, headers=headers, timeout=15)
         
         if response.status_code != 200:
-            return jsonify({"error": f"Peplink API fout: {response.status_code}"}), 500
+            return jsonify({"error": f"Peplink API fout: {response.status_code} - {response.text}"}), 500
 
         users = []
         lines = response.text.strip().split("\n")
         
-        for line in lines[1:]:
+        for line in lines[1:]:   # skip header
             if line.strip():
                 fields = [f.strip() for f in line.split(",")]
                 if len(fields) >= 2:
