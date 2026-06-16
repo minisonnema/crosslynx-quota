@@ -17,21 +17,20 @@ headers = {
 @app.route('/api/quota')
 def get_quota():
     try:
-        # Exacte endpoint volgens Peplink API documentatie
         url = f"{BASE_URL}/o/{ORGANIZATION_ID}/g/{GROUP_ID}/captive_portal_user_info_csv"
         
-        response = requests.get(url, headers=headers, timeout=15)
+        response = requests.get(url, headers=headers, timeout=20)
         
         if response.status_code != 200:
             return jsonify({
                 "error": f"Peplink API fout: {response.status_code}",
-                "details": response.text[:500]  # eerste 500 tekens
+                "details": response.text[:800]
             }), 500
 
         users = []
         lines = response.text.strip().split("\n")
         
-        for line in lines[1:]:  # skip header
+        for line in lines[1:]:
             if line.strip():
                 fields = [f.strip() for f in line.split(",")]
                 if len(fields) >= 2:
