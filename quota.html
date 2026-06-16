@@ -52,34 +52,42 @@ async function loadQuota() {
 
     try {
         const response = await fetch('/api/quota');
-        const data = await response.json();
+        let data = await response.json();
 
-        if (!response.ok || data.error) {
-            throw new Error(data.error || data.details || "Onbekende fout");
+        // Debug: toon wat er precies binnenkomt
+        console.log("Ontvangen data:", data);
+
+        // Als het een object met 'users' is
+        if (data.users && Array.isArray(data.users)) {
+            data = data.users;
         }
 
-        tbody.innerHTML = "";
-        
-        data.forEach(user => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td><strong>${user.name}</strong></td>
-                <td>${user.quota}</td>
-                <td>${user.used}</td>
-                <td class="good">${user.remaining}</td>
-                <td class="good">✅ Actief</td>
-            `;
-            tbody.appendChild(row);
-        });
+        // Als het een array is
+        if (Array.isArray(data) && data.length > 0) {
+            tbody.innerHTML = "";
+            data.forEach(user => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td><strong>${user.name || user.username || 'Onbekend'}</strong></td>
+                    <td>${user.quota || 'N/A'}</td>
+                    <td>${user.used || '0 GB'}</td>
+                    <td class="good">${user.remaining || user.quota || 'N/A'}</td>
+                    <td class="good">✅ Actief</td>
+                `;
+                tbody.appendChild(row);
+            });
+        } else {
+            tbody.innerHTML = `<tr><td colspan='5' class='error'>Geen gebruikers gevonden in de response.</td></tr>`;
+        }
 
         document.getElementById("lastUpdate").textContent = new Date().toLocaleTimeString('nl-NL');
 
     } catch (error) {
-        tbody.innerHTML = `<tr><td colspan='5' class='error'>❌ ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan='5' class='error'>❌ Fout: ${error.message}</td></tr>`;
     }
 }
 
-// Laad automatisch bij openen
+// Laad automatisch
 window.onload = loadQuota;
 </script>
 
